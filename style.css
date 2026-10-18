@@ -429,3 +429,70 @@ body::after{width:460px;height:460px;background:#ffb3d4;bottom:-140px;left:-100p
 @media(max-width:1000px){.steps{grid-template-columns:1fr 1fr}.steps::before{display:none}}
 @media(max-width:620px){.steps{grid-template-columns:1fr}.process{margin-bottom:80px}}
 @media(prefers-reduced-motion:reduce){.steps::before,.num{animation:none!important}}
+
+
+
+/* Responsive colourful orbit particles */
+.hero-art {
+  position: relative;
+}
+
+.particle-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.orbit-particle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--particle-color);
+  box-shadow: 0 0 12px var(--particle-color);
+  animation: orbitFloat 5s linear var(--delay) infinite;
+}
+
+@keyframes orbitFloat {
+  from {
+    transform: rotate(var(--angle)) translateX(var(--radius));
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+  to {
+    transform: rotate(calc(var(--angle) + 360deg))
+      translateX(var(--radius));
+    opacity: 0.35;
+  }
+}
+
+@media (max-width: 620px) {
+  .orbit-particle {
+    width: 5px;
+    height: 5px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orbit-particle {
+    animation: none !important;
+  }
+}
+
+
+
+
+
+
+/* Remove unwanted colourful particles from the portrait */
+.hero-art .spark,
+.hero-art .particle-layer,
+.hero-art .orbit-particle {
+  display: none !important;
+}
