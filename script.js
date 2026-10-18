@@ -1,90 +1,269 @@
-/* MOUNIKA T. — interactions */
+
+/* MOUNIKA T. — Responsive portfolio interactions */
 document.documentElement.classList.add("js");
 
-// 1. Rotating hero words
-const words = ["business websites","landing pages","responsive websites","website redesigns"];
-const rot = document.querySelector(".rotating-word");
-let i = 0;
-if (rot) setInterval(() => {
-  rot.classList.add("word-out");
-  setTimeout(() => { i = (i + 1) % words.length; rot.textContent = words[i]; rot.classList.remove("word-out"); }, 250);
-}, 2600);
+const reduceMotion = window.matchMedia(
+  "(prefers-reduced-motion: reduce)"
+).matches;
 
-// 2. Mobile menu
-const toggle = document.querySelector(".menu-toggle");
+// 1. Rotating hero words
+const words = [
+  "business websites",
+  "landing pages",
+  "responsive websites",
+  "website redesigns"
+];
+
+const rotatingWord = document.querySelector(".rotating-word");
+let wordIndex = 0;
+
+if (rotatingWord && !reduceMotion) {
+  window.setInterval(() => {
+    rotatingWord.classList.add("word-out");
+
+    window.setTimeout(() => {
+      wordIndex = (wordIndex + 1) % words.length;
+      rotatingWord.textContent = words[wordIndex];
+      rotatingWord.classList.remove("word-out");
+    }, 250);
+  }, 2600);
+}
+
+// 2. Mobile navigation
+const menuToggle = document.querySelector(".menu-toggle");
 const nav = document.querySelector(".nav-links");
-if (toggle && nav) {
-  const setMenu = (open) => {
+
+if (menuToggle && nav) {
+  function setMenu(open) {
     nav.classList.toggle("open", open);
-    toggle.setAttribute("aria-expanded", String(open));
-    toggle.textContent = open ? "×" : "☰";
-  };
-  toggle.addEventListener("click", () => setMenu(!nav.classList.contains("open")));
-  nav.querySelectorAll("a").forEach(a => a.addEventListener("click", () => setMenu(false)));
+    menuToggle.setAttribute("aria-expanded", String(open));
+    menuToggle.textContent = open ? "×" : "☰";
+  }
+
+  menuToggle.addEventListener("click", () => {
+    setMenu(!nav.classList.contains("open"));
+  });
+
+  nav.querySelectorAll("a").forEach(link => {
+    link.addEventListener("click", () => setMenu(false));
+  });
 }
 
 // 3. Scroll reveal
-const items = document.querySelectorAll("[data-reveal]");
-if ("IntersectionObserver" in window) {
-  const io = new IntersectionObserver((entries) => {
-    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } });
-  }, { threshold: 0.15 });
-  items.forEach(el => io.observe(el));
-} else items.forEach(el => el.classList.add("in"));
+const revealItems = document.querySelectorAll("[data-reveal]");
+
+if (!reduceMotion && "IntersectionObserver" in window) {
+  const revealObserver = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add("in");
+        revealObserver.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.1 });
+
+  revealItems.forEach(item => revealObserver.observe(item));
+} else {
+  revealItems.forEach(item => item.classList.add("in"));
+}
 
 // 4. Scroll progress bar
-const bar = document.querySelector(".progress");
-addEventListener("scroll", () => {
-  const max = document.documentElement.scrollHeight - innerHeight;
-  if (bar && max > 0) bar.style.transform = `scaleX(${scrollY / max})`;
-}, { passive: true });
+const progressBar = document.querySelector(".progress");
 
-// 5. Cursor effects + card tilt (desktop only)
-if (matchMedia("(hover:hover)").matches && !matchMedia("(prefers-reduced-motion:reduce)").matches) {
-  const glow = document.querySelector(".glow");
-  const ring = document.createElement("div"); ring.className = "cursor-ring";
-  const dot = document.createElement("div"); dot.className = "cursor-dot";
-  document.body.append(ring, dot);
-  let mx = innerWidth / 2, my = innerHeight / 2, gx = mx, gy = my, rx = mx, ry = my, last = 0;
+function updateProgress() {
+  const maxScroll =
+    document.documentElement.scrollHeight - window.innerHeight;
 
-  function spark(x, y) {
-    const s = document.createElement("span");
-    s.className = "spark";
-    const c = ["#7c6cf0", "#ec6fa8", "#0f9d8a", "#f5a524"][Math.floor(Math.random() * 4)];
-    s.style.cssText = `left:${x}px;top:${y}px;background:${c};--dx:${(Math.random() - .5) * 60}px;--dy:${Math.random() * 50 + 10}px`;
-    document.body.appendChild(s);
-    setTimeout(() => s.remove(), 800);
+  if (progressBar) {
+    const progress = maxScroll > 0
+      ? Math.min(1, Math.max(0, window.scrollY / maxScroll))
+      : 0;
+
+    progressBar.style.transform = `scaleX(${progress})`;
+  }
+}
+
+window.addEventListener("scroll", updateProgress, { passive: true });
+updateProgress();
+
+// 5. Optimise image loading
+document.querySelectorAll("img").forEach(img => {
+  img.decoding = "async";
+
+  // Keep the portrait ready immediately.
+  if (img.closest(".portrait-frame")) {
+    img.loading = "eager";
+    img.fetchPriority = "high";
+  } else {
+    // Load other images as the visitor approaches them.
+    img.loading = "lazy";
+  }
+});
+
+// 6. Small colourful sparkles for mobile taps and touch movement
+// Sparkles stay away from the portrait and disappear quickly.
+if (!reduceMotion) {
+  const touchDevice = window.matchMedia(
+    "(hover: none), (pointer: coarse)"
+  ).matches;
+
+  const sparkleColors = [
+    "#7c6cf0",
+    "#ec6fa8",
+    "#0f9d8a",
+    "#f5a524"
+  ];
+
+  let lastTouchSpark = 0;
+
+  function createTouchSparkles(x, y, amount = 4) {
+    for (let i = 0; i < amount; i++) {
+      const sparkle = document.createElement("span");
+      sparkle.className = "spark";
+
+      const angle = Math.random() * Math.PI * 2;
+      const distance = 12 + Math.random() * 28;
+      const dx = Math.cos(angle) * distance;
+      const dy = Math.sin(angle) * distance;
+
+      sparkle.style.cssText = `
+        left: ${x}px;
+        top: ${y}px;
+        background: ${sparkleColors[
+          Math.floor(Math.random() * sparkleColors.length)
+        ]};
+        --dx: ${dx}px;
+        --dy: ${dy}px;
+      `;
+
+      document.body.appendChild(sparkle);
+      window.setTimeout(() => sparkle.remove(), 850);
+    }
   }
 
-  addEventListener("pointermove", (e) => {
-    mx = e.clientX; my = e.clientY;
-    dot.style.transform = `translate(${mx}px,${my}px)`;
+  if (touchDevice) {
+    document.addEventListener("pointerdown", event => {
+      if (event.pointerType !== "touch") return;
+
+      // Never place sparkles directly over the portrait.
+      if (event.target.closest(".portrait-frame")) return;
+
+      createTouchSparkles(event.clientX, event.clientY, 5);
+    }, { passive: true });
+
+    document.addEventListener("pointermove", event => {
+      if (event.pointerType !== "touch") return;
+      if (event.target.closest(".portrait-frame")) return;
+
+      const now = performance.now();
+
+      // Limit the effect so scrolling stays smooth.
+      if (now - lastTouchSpark < 140) return;
+      lastTouchSpark = now;
+
+      createTouchSparkles(event.clientX, event.clientY, 2);
+    }, { passive: true });
+  }
+}
+
+// 7. Desktop cursor, sparkles and card tilt
+// Disabled on touch devices to keep mobile scrolling smooth.
+if (
+  window.matchMedia("(hover: hover) and (pointer: fine)").matches &&
+  !reduceMotion
+) {
+  const glow = document.querySelector(".glow");
+  const ring = document.createElement("div");
+  const dot = document.createElement("div");
+
+  ring.className = "cursor-ring";
+  dot.className = "cursor-dot";
+  document.body.append(ring, dot);
+
+  let mx = window.innerWidth / 2;
+  let my = window.innerHeight / 2;
+  let gx = mx;
+  let gy = my;
+  let rx = mx;
+  let ry = my;
+  let lastSpark = 0;
+
+  function createDesktopSpark(x, y) {
+    const sparkle = document.createElement("span");
+    sparkle.className = "spark";
+
+    sparkle.style.cssText = `
+      left: ${x}px;
+      top: ${y}px;
+      background: ${sparkleColors[
+        Math.floor(Math.random() * sparkleColors.length)
+      ]};
+      --dx: ${(Math.random() - 0.5) * 60}px;
+      --dy: ${Math.random() * 50 + 10}px;
+    `;
+
+    document.body.appendChild(sparkle);
+    window.setTimeout(() => sparkle.remove(), 850);
+  }
+
+  window.addEventListener("pointermove", event => {
+    mx = event.clientX;
+    my = event.clientY;
+    dot.style.transform = `translate(${mx}px, ${my}px)`;
+
     const now = performance.now();
-    if (now - last > 45) { last = now; spark(mx, my); }
+    if (now - lastSpark > 70) {
+      lastSpark = now;
+      createDesktopSpark(mx, my);
+    }
   }, { passive: true });
 
-  (function loop() {
-    gx += (mx - gx) * .08; gy += (my - gy) * .08;
-    rx += (mx - rx) * .18; ry += (my - ry) * .18;
-    if (glow) { glow.style.left = gx + "px"; glow.style.top = gy + "px"; }
-    ring.style.transform = `translate(${rx}px,${ry}px)`;
-    requestAnimationFrame(loop);
-  })();
+  function animateCursor() {
+    gx += (mx - gx) * 0.08;
+    gy += (my - gy) * 0.08;
+    rx += (mx - rx) * 0.18;
+    ry += (my - ry) * 0.18;
 
-  document.querySelectorAll("a,button").forEach((el) => {
-    el.addEventListener("pointerenter", () => ring.classList.add("big"));
-    el.addEventListener("pointerleave", () => ring.classList.remove("big"));
+    if (glow) {
+      glow.style.left = `${gx}px`;
+      glow.style.top = `${gy}px`;
+    }
+
+    ring.style.transform = `translate(${rx}px, ${ry}px)`;
+    window.requestAnimationFrame(animateCursor);
+  }
+
+  animateCursor();
+
+  document.querySelectorAll("a, button").forEach(element => {
+    element.addEventListener("pointerenter", () => {
+      ring.classList.add("big");
+    });
+
+    element.addEventListener("pointerleave", () => {
+      ring.classList.remove("big");
+    });
   });
 
-  document.querySelectorAll(".service-card,.project-card").forEach((card) => {
-    card.addEventListener("pointermove", (e) => {
-      const r = card.getBoundingClientRect();
-      const x = (e.clientX - r.left) / r.width - .5, y = (e.clientY - r.top) / r.height - .5;
-      card.style.transform = `perspective(900px) rotateY(${x * 8}deg) rotateX(${-y * 8}deg) translateY(-6px)`;
+  document.querySelectorAll(".service-card, .project-card").forEach(card => {
+    card.addEventListener("pointermove", event => {
+      const rect = card.getBoundingClientRect();
+      const x = (event.clientX - rect.left) / rect.width - 0.5;
+      const y = (event.clientY - rect.top) / rect.height - 0.5;
+
+      card.style.transform =
+        `perspective(900px) rotateY(${x * 8}deg) ` +
+        `rotateX(${-y * 8}deg) translateY(-6px)`;
     });
-    card.addEventListener("pointerleave", () => card.style.transform = "");
+
+    card.addEventListener("pointerleave", () => {
+      card.style.transform = "";
+    });
   });
 }
-// 6. Copyright year
-const y = document.querySelector("#year");
-if (y) y.textContent = new Date().getFullYear();
+
+// 8. Copyright year
+const year = document.querySelector("#year");
+if (year) {
+  year.textContent = new Date().getFullYear();
+}
